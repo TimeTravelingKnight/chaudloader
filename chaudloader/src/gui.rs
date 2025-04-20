@@ -2,6 +2,7 @@ use fltk::prelude::*;
 
 use crate::{config, console, mods, path};
 
+
 struct ConsoleWriter<'a>(&'a mut fltk::terminal::Terminal);
 
 impl<'a> std::io::Write for ConsoleWriter<'a> {
@@ -506,6 +507,7 @@ fn make_main_tile(
         let mod_bindings = std::sync::Arc::clone(&mod_bindings);
         let autostart_checkbox = autostart_checkbox.clone();
         move || {
+          
             let mod_bindings = mod_bindings.lock().unwrap();
             on_start(
                 &mut tile,
@@ -538,6 +540,7 @@ fn make_main_tile(
         let mut play_fn = play_fn.clone();
         move || loop {
             if autostart_seconds_left.load(std::sync::atomic::Ordering::SeqCst) == 0 {
+              
                 play_fn();
                 return;
             }
@@ -596,26 +599,28 @@ fn make_window(
             serde_plain::to_string(&game_env.volume).unwrap(),
             game_env.exe_crc32
         ));
+
     wind.make_resizable(true);
 
     let mut console = fltk::terminal::Terminal::default_fill();
     wind.resizable(&console);
     console.set_ansi(true);
     console.hide();
-
     let start_sender = std::sync::Arc::new(std::sync::Mutex::new(Some(start_sender)));
-
+   
     let main_tile = make_main_tile(game_env, config, {
         let start_sender = start_sender.clone();
+        let config=config.clone();
+        let wind=wind.clone();
         move |main_tile, start_request| {
             let start_sender = if let Some(start_sender) = start_sender.lock().unwrap().take() {
                 start_sender
             } else {
                 return;
             };
-
+         
             main_tile.hide();
-
+             
             let mut console_reader = console::Console::hijack().unwrap();
             std::thread::spawn({
                 let mut console = console.clone();
@@ -623,13 +628,18 @@ fn make_window(
                     std::io::copy(&mut console_reader, &mut ConsoleWriter(&mut console)).unwrap();
                 }
             });
+           
             console.show();
-
+            
+            
             start_sender.send(start_request).unwrap();
+            if config.disable_terminal {
+                wind.platform_hide();
+            }
         }
     });
     wind.resizable(&main_tile);
-
+    
     wind.end();
 
     wind
@@ -659,6 +669,7 @@ pub fn run(
             match message {}
         }
     }
+  
 
     Ok(())
 }

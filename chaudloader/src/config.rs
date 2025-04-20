@@ -13,6 +13,8 @@ pub struct Config {
     pub disable_autostart: bool,
     #[serde(default = "empty_btreeset::<String>")]
     pub enabled_mods: std::collections::BTreeSet<String>,
+    #[serde(default = "default_bool::<false>")]
+    pub disable_terminal: bool,
 
     // Secret options
     pub developer_mode: Option<bool>,
